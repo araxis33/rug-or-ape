@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RUG OR APE</title>
+<style>
+  :root{
+    --bg: #0a0e17;
+    --panel: #101827;
+    --panel-2: #0d1420;
+    --card-bg: #131f33;
+    --accent: #2f6bff;
+    --accent-bright: #5b8bff;
+    --bull: #00d68f;
+    --bear: #ff4d5e;
+    --gold: #ffb800;
+    --amber: #ffb800;
+    --text: #eef2ff;
+    --muted: #7d8bab;
+    --line: #1c2740;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  body{
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh;
+    padding: 24px 16px 40px;
+    gap: 14px;
+    background: radial-gradient(circle at 50% 0%, #10203f 0%, var(--bg) 55%);
+  }
+
+  .title{
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: clamp(22px, 5vw, 32px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-shadow: 0 0 10px rgba(47,107,255,0.5), 0 0 2px rgba(47,107,255,0.7);
+    text-wrap: balance;
+    margin: 4px 0 0;
+  }
+  .subtitle{
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: -8px 0 4px;
+  }
+
+  .cabinet{
+    position: relative;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow:
+      0 0 0 1px rgba(47,107,255,0.08),
+      0 20px 60px -20px rgba(0,0,0,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.03);
+    width: min(92vw, 380px);
+  }
+
+  .hud{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 2px 6px 10px;
+    gap: 10px;
+  }
+  .hud .stat{ display:flex; flex-direction:column; gap:2px; }
+  .hud .stat.right{ align-items:flex-end; }
+  .hud .label{ font-size: 10px; text-transform:uppercase; letter-spacing:0.16em; color: var(--muted); }
+  .hud .value{ font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .hud .value.score{ color: var(--gold); text-shadow: 0 0 8px rgba(255,184,0,0.4); }
+  .lives{ display:flex; gap:5px; }
+  .life{ width:10px; height:10px; border-radius:50%; background: var(--bear); box-shadow: 0 0 6px rgba(255,77,94,0.7); }
+  .life.lost{ background: #2a2f3d; box-shadow:none; }
+
+  .timerbar-track{
+    height: 5px;
+    border-radius: 3px;
+    background: #0d1420;
+    margin: 0 4px 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .timerbar-fill{
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--bull), var(--gold), var(--bear));
+    transform-origin: left;
+    transition: transform 0.05s linear;
+  }
+
+  .stage{
+    position: relative;
+    height: 402px;
+    margin: 0 4px;
+  }
+
+  .card{
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--card-bg), #0f1a2c);
+    border: 1px solid #223252;
+    border-radius: 14px;
+    padding: 16px;
+    display:flex; flex-direction:column; gap: 10px;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 12px 30px -14px rgba(0,0,0,0.6);
+  }
+  .card:active{ cursor: grabbing; }
+  .card.entering{ animation: card-in 0.28s ease; }
+  @keyframes card-in{ from{ transform: scale(0.9); opacity:0; } to{ transform: scale(1); opacity:1; } }
+
+  .card-head{ display:flex; align-items:center; gap: 10px; }
+  .card-icon{ font-size: 26px; line-height:1; filter: drop-shadow(0 0 6px rgba(47,107,255,0.4)); }
+  .card-name{ display:flex; flex-direction:column; gap:1px; }
+  .card-ticker{ font-family:'Courier New', monospace; font-weight:700; font-size: 17px; letter-spacing: 0.03em; }
+  .card-age{ font-family:'Courier New', monospace; font-size: 10px; color: var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+
+  .spark{ display:block; width:100%; height:52px; }
+
+  .stats-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 2px;
+  }
+  .stat-cell{
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 9px;
+    display:flex; flex-direction:column; gap: 2px;
+  }
+  .stat-cell .k{ font-family:'Courier New', monospace; font-size: 9px; text-transform:uppercase; letter-spacing:0.1em; color: var(--muted); }
+  .stat-cell .v{ font-family:'Courier New', monospace; font-size: 14px; font-weight:700; font-variant-numeric: tabular-nums; color: var(--text); }
+
+  .swipe-hint{
+    position:absolute; top: 14px;
+    font-family:'Courier New', monospace;
+    font-weight:700; font-size: 15px; letter-spacing:0.1em;
+    padding: 5px 10px; border-radius: 6px;
+    border: 2px solid; opacity: 0; pointer-events:none;
+    text-transform: uppercase;
+  }
+  .swipe-hint.ape{ right: 12px; color: var(--bull); border-color: var(--bull); transform: rotate(8deg); }
+  .swipe-hint.skip{ left: 12px; color: var(--bear); border-color: var(--bear); transform: rotate(-8deg); }
+
+  .result-banner{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction: column; gap: 6px;
+    background: rgba(8,12,22,0.88);
+    border-radius: 14px;
+    opacity: 0; pointer-events:none;
+    transition: opacity 0.15s ease;
+    text-align:center; padding: 20px;
+  }
+  .result-banner.show{ opacity: 1; }
+  .result-banner .big{
+    font-family:'Courier New', monospace; font-weight:700;
+    font-size: 22px; letter-spacing:0.06em; text-transform:uppercase;
+  }
+  .result-banner .sub{
+    font-family:'Courier New', monospace; font-size: 12px; color: var(--muted);
+  }
+  .result-banner.win .big{ color: var(--bull); }
+  .result-banner.lose .big{ color: var(--bear); }
+  .result-banner.neutral .big{ color: var(--muted); }
+
+  .actions{ display:flex; gap: 10px; margin: 12px 4px 0; }
+  button.act{
+    flex:1;
+    font-family:'Courier New', monospace;
+    font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+    font-size: 13px; padding: 12px 10px; border-radius: 9px;
+    cursor:pointer; border: 1px solid;
+  }
+  button.act.skip{ color: var(--bear); background: rgba(255,77,94,0.08); border-color: rgba(255,77,94,0.4); }
+  button.act.skip:hover{ background: rgba(255,77,94,0.16); }
+  button.act.ape{ color: var(--bull); background: rgba(0,214,143,0.08); border-color: rgba(0,214,143,0.4); }
+  button.act.ape:hover{ background: rgba(0,214,143,0.16); }
+  button.act:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  button.act:disabled{ opacity: 0.35; cursor: default; }
+
+  .overlay{
+    position:absolute; inset: 14px;
+    margin-top: 46px;
+    border-radius: 10px;
+    background: rgba(8,12,22,0.94);
+    backdrop-filter: blur(2px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 14px;
+    text-align:center;
+    padding: 20px;
+    z-index: 5;
+  }
+  .overlay.hidden{ display:none; }
+  .overlay h2{
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 20px;
+    margin: 0;
+  }
+  .overlay h2.lose{ color: var(--bear); }
+  .overlay p{
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 290px;
+    line-height: 1.7;
+    margin: 0;
+    text-align: left;
+  }
+  .overlay .big-score{
+    font-size: 38px;
+    color: var(--gold);
+    text-shadow: 0 0 14px rgba(255,184,0,0.5);
+    font-variant-numeric: tabular-nums;
+  }
+  .overlay .stats-line{
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--accent-bright);
+    letter-spacing: 0.05em;
+  }
+  .overlay .signal-legend{
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align:left;
+    line-height: 1.8;
+  }
+  .overlay .signal-legend b.good{ color: var(--bull); }
+  .overlay .signal-legend b.bad{ color: var(--bear); }
+
+  button.play{
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 14px;
+    color: var(--bg);
+    background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1c3f9e, 0 8px 18px -6px rgba(47,107,255,0.6);
+  }
+  button.play:active{ transform: translateY(4px); box-shadow: 0 2px 0 #1c3f9e; }
+  button.play:focus-visible{ outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  .controls-hint{
+    font-family: 'Courier New', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="title">Rug or Ape</div>
+<div class="subtitle">read the signals, make the call</div>
+
+<div class="cabinet">
+  <div class="hud">
+    <div class="stat">
+      <span class="label">Score</span>
+      <span class="value score" id="scoreVal">0</span>
+    </div>
+    <div class="stat">
+      <span class="label">Streak</span>
+      <span class="value" id="streakVal">0</span>
+    </div>
+    <div class="stat right">
+      <span class="label">Lives</span>
+      <div class="lives" id="livesRow">
+        <span class="life"></span><span class="life"></span><span class="life"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="timerbar-track"><div class="timerbar-fill" id="timerFill"></div></div>
+
+  <div class="stage" id="stage">
+    <!-- cards injected here -->
+
+    <div class="overlay" id="startOverlay">
+      <h2>Rug or Ape</h2>
+      <div class="signal-legend">
+        Swipe right / <b class="good">APE IN</b> if it looks legit.<br>
+        Swipe left / <b class="bad">SKIP</b> if it looks like a rug.<br><br>
+        Usually safer: <b class="good">high liquidity, many holders, LP locked, low top-holder %, older contract</b>.<br>
+        Usually risky: <b class="bad">low liquidity, few holders, LP unlocked, one wallet holds a lot, brand new</b>.<br><br>
+        Signals aren't guaranteed — some rugs fake a locked LP.
+      </div>
+      <button class="play" id="startBtn">Start</button>
+      <div class="controls-hint">drag the card, tap a button, or use ← / →</div>
+    </div>
+
+    <div class="overlay hidden" id="overOverlay">
+      <h2 class="lose">Rugged Out.</h2>
+      <div class="big-score" id="finalScore">0</div>
+      <div class="stats-line" id="statsLine">0 calls · 0% accuracy · Best 0</div>
+      <button class="play" id="retryBtn">Try Again</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="act skip" id="skipBtn">🚩 Skip</button>
+    <button class="act ape" id="apeBtn">🐸 Ape In</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const scoreEl = document.getElementById('scoreVal');
+  const streakEl = document.getElementById('streakVal');
+  const livesRow = document.getElementById('livesRow');
+  const timerFill = document.getElementById('timerFill');
+  const startOverlay = document.getElementById('startOverlay');
+  const overOverlay = document.getElementById('overOverlay');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const apeBtn = document.getElementById('apeBtn');
+  const finalScoreEl = document.getElementById('finalScore');
+  const statsLine = document.getElementById('statsLine');
+
+  const STORE_KEY = 'rugorape_best';
+  let best = parseInt(localStorage.getItem(STORE_KEY) || '0', 10);
+
+  const PREFIXES = ['MOON','BASE','PEPE','DOGE','SIGMA','GIGA','CHAD','FROG','APU','WOJAK','TURBO','ROCKET','SAFU','ANON','ZOOM','ULTRA','MEGA','BASED','SNIPE','LASER'];
+  const SUFFIXES = ['INU','COIN','AI','X','2.0','FI','MOON','CHAIN','SWAP','DAO','PAD','VERSE','GEM','PUMP'];
+  const ICONS = ['🐸','🚀','🔥','🐕','🦄','💎','🌙','🐹','🧪','🎲','🦍','🐻','🐈','👽'];
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randRange(a,b){ return a + Math.random()*(b-a); }
+  function randInt(a,b){ return Math.floor(randRange(a,b+1)); }
+
+  function fmtCompact(n){
+    if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+    return '$' + Math.round(n);
+  }
+  function fmtAge(h){
+    if (h < 1) return Math.round(h*60) + 'm';
+    if (h < 48) return h.toFixed(1) + 'h';
+    return (h/24).toFixed(1) + 'd';
+  }
+
+  let running = false;
+  let score = 0, lives = 3, streak = 0, rounds = 0, correct = 0;
+  let cardEl = null;
+  let currentCard = null;
+  let timerId = null;
+  let timeLeft = 0, timeTotal = 0;
+  let dragging = false, dragStartX = 0, dragDx = 0;
+  let resolved = false;
+
+  function updateHud(){
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+    const lifeEls = livesRow.querySelectorAll('.life');
+    lifeEls.forEach((el,i) => el.classList.toggle('lost', i >= lives));
+  }
+
+  function genCard(){
+    const rugChance = Math.min(0.58, 0.4 + rounds*0.01);
+    const isRug = Math.random() < rugChance;
+    let liquidity, holders, lpLocked, topHolder, ageHours;
+    if (isRug){
+      liquidity = randRange(300, 6000);
+      holders = randInt(8, 90);
+      lpLocked = Math.random() < 0.78 ? randInt(0,15) : randInt(60,95);
+      topHolder = randInt(35,92);
+      ageHours = randRange(0.1, 6);
+    } else {
+      liquidity = randRange(15000, 600000);
+      holders = randInt(150, 6000);
+      lpLocked = Math.random() < 0.85 ? randInt(70,100) : randInt(10,50);
+      topHolder = randInt(2,18);
+      ageHours = randRange(2, 500);
+    }
+    return {
+      ticker: '$' + pick(PREFIXES) + pick(SUFFIXES),
+      icon: pick(ICONS),
+      isRug, liquidity, holders, lpLocked, topHolder, ageHours,
+      pumpPct: Math.round(randRange(60,320))
+    };
+  }
+
+  function drawSpark(canvas){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    let v = 50 + Math.random()*20;
+    const pts = [v];
+    for (let i=1;i<28;i++){
+      v += (Math.random()-0.5)*14;
+      v = Math.max(8, Math.min(92, v));
+      pts.push(v);
+    }
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x = (i/(pts.length-1))*w;
+      const y = h - (p/100)*h;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    const up = pts[pts.length-1] >= pts[0];
+    ctx.strokeStyle = up ? '#00d68f' : '#ff4d5e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function renderCard(card){
+    const el = document.createElement('div');
+    el.className = 'card entering';
+    el.innerHTML = `
+      <div class="swipe-hint ape">APE</div>
+      <div class="swipe-hint skip">SKIP</div>
+      <div class="card-head">
+        <div class="card-icon">${card.icon}</div>
+        <div class="card-name">
+          <div class="card-ticker">${card.ticker}</div>
+          <div class="card-age">age: ${fmtAge(card.ageHours)}</div>
+        </div>
+      </div>
+      <canvas class="spark" width="320" height="52"></canvas>
+      <div class="stats-grid">
+        <div class="stat-cell"><span class="k">Liquidity</span><span class="v">${fmtCompact(card.liquidity)}</span></div>
+        <div class="stat-cell"><span class="k">Holders</span><span class="v">${card.holders}</span></div>
+        <div class="stat-cell"><span class="k">LP Locked</span><span class="v">${card.lpLocked}%</span></div>
+        <div class="stat-cell"><span class="k">Top Holder</span><span class="v">${card.topHolder}%</span></div>
+      </div>
+      <div class="result-banner" id="resultBanner">
+        <div class="big" id="resultBig"></div>
+        <div class="sub" id="resultSub"></div>
+      </div>
+    `;
+    stage.appendChild(el);
+    drawSpark(el.querySelector('.spark'));
+    return el;
+  }
+
+  function startTimer(){
+    timeTotal = Math.max(2600, 5000 - rounds*80);
+    timeLeft = timeTotal;
+    tickTimer();
+  }
+  function tickTimer(){
+    if (!running || resolved) return;
+    timeLeft -= 50;
+    const frac = Math.max(0, timeLeft/timeTotal);
+    timerFill.style.transform = `scaleX(${frac})`;
+    if (timeLeft <= 0){
+      decide('skip', true);
+      return;
+    }
+    timerId = setTimeout(tickTimer, 50);
+  }
+
+  function nextRound(){
+    resolved = false;
+    currentCard = genCard();
+    cardEl = renderCard(currentCard);
+    attachDrag(cardEl);
+    startTimer();
+  }
+
+  function attachDrag(el){
+    el.addEventListener('pointerdown', (e) => {
+      if (resolved) return;
+      dragging = true; dragStartX = e.clientX; dragDx = 0;
+      el.setPointerCapture(e.pointerId);
+      el.style.transition = 'none';
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!dragging || resolved) return;
+      dragDx = e.clientX - dragStartX;
+      el.style.transform = `translateX(${dragDx}px) rotate(${dragDx/18}deg)`;
+      const apeHint = el.querySelector('.swipe-hint.ape');
+      const skipHint = el.querySelector('.swipe-hint.skip');
+      apeHint.style.opacity = Math.max(0, Math.min(1, dragDx/90));
+      skipHint.style.opacity = Math.max(0, Math.min(1, -dragDx/90));
+    });
+    function release(){
+      if (!dragging) return;
+      dragging = false;
+      el.style.transition = 'transform 0.25s ease';
+      if (dragDx > 90){ decide('ape', false); }
+      else if (dragDx < -90){ decide('skip', false); }
+      else { el.style.transform = 'translateX(0) rotate(0)'; }
+    }
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+  }
+
+  function decide(action, isTimeout){
+    if (resolved || !running) return;
+    resolved = true;
+    clearTimeout(timerId);
+    skipBtn.disabled = true; apeBtn.disabled = true;
+
+    const card = currentCard;
+    let big = '', sub = '', tone = 'neutral';
+
+    if (action === 'ape' && !card.isRug){
+      const gain = Math.round(50 + streak*12);
+      score += gain; streak++; correct++;
+      big = `+${card.pumpPct}% PUMP`; sub = `nice catch, +${gain}`; tone = 'win';
+    } else if (action === 'ape' && card.isRug){
+      lives--; streak = 0;
+      big = 'RUGGED -100%'; sub = 'paper hands regret this later. -1 life'; tone = 'lose';
+    } else if (action === 'skip' && card.isRug){
+      const gain = Math.round(30 + streak*8);
+      score += gain; streak++; correct++;
+      big = 'DODGED IT'; sub = `good read, +${gain}`; tone = 'win';
+    } else {
+      big = isTimeout ? 'TOO SLOW' : 'MISSED IT';
+      sub = `that one pumped +${card.pumpPct}%`; tone = 'neutral';
+    }
+    rounds++;
+    updateHud();
+
+    const banner = cardEl.querySelector('#resultBanner');
+    const bigEl = cardEl.querySelector('#resultBig');
+    const subEl = cardEl.querySelector('#resultSub');
+    bigEl.textContent = big; subEl.textContent = sub;
+    banner.className = 'result-banner show ' + tone;
+
+    if (!dragging){
+      const flyX = action === 'ape' ? 500 : -500;
+      cardEl.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+      cardEl.style.transform = `translateX(${flyX}px) rotate(${flyX/18}deg)`;
+    }
+
+    setTimeout(() => {
+      if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
+      if (lives <= 0){ endGame(); return; }
+      if (running) nextRound();
+    }, 650);
+  }
+
+  skipBtn.addEventListener('click', () => decide('skip', false));
+  apeBtn.addEventListener('click', () => decide('ape', false));
+  window.addEventListener('keydown', (e) => {
+    if (!running || resolved) return;
+    if (e.key === 'ArrowRight'){ e.preventDefault(); decide('ape', false); }
+    if (e.key === 'ArrowLeft'){ e.preventDefault(); decide('skip', false); }
+  });
+
+  function endGame(){
+    running = false;
+    if (score > best){ best = score; localStorage.setItem(STORE_KEY, String(best)); }
+    finalScoreEl.textContent = score;
+    const acc = rounds ? Math.round((correct/rounds)*100) : 0;
+    statsLine.textContent = `${rounds} calls · ${acc}% accuracy · Best ${best}`;
+    overOverlay.classList.remove('hidden');
+  }
+
+  function startGame(){
+    score = 0; lives = 3; streak = 0; rounds = 0; correct = 0;
+    updateHud();
+    startOverlay.classList.add('hidden');
+    overOverlay.classList.add('hidden');
+    skipBtn.disabled = false; apeBtn.disabled = false;
+    running = true;
+    nextRound();
+  }
+
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  updateHud();
+})();
+</script>
+</body>
+</html>
